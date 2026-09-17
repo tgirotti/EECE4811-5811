@@ -1,5 +1,9 @@
 
 #include <stdlib.h>
+#include <assert.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 int main(){
   int p2c_pipe[2]; //producer to consumer pupe
