@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdlib.h>
+#include <stdio.h>
 
 int main(){
   int p2c_pipe[2]; //producer to consumer pupe
@@ -16,20 +16,27 @@ int main(){
   assert(r1 == 0 && r2 == 0);
 
 //maing child proc.
-  pid_t pid = fork();
-  assert(pid >= 0);  
+  pid_t p1 = fork();
+  assert(p1 >= 0);  
 
-  if(pid == 0){//consmer proces/child
+  if(p1 == 0){//consmer proces/child
     close(p2c_pipe[1]);
     close(c2p_pipe[0]);
     //closing the pipes the other doesnt use as meentioned in hw. 
     //consmer doesnt wrtie to data and consumer doesnt read from ack pipe
     for(int i =1; i <=5; i++){
       //read bloacks of data till the producer writes to the pipe
+      int prod_num;//producer num given
 
-
-      printf("Consumer: %d\n",    );
-
+      //block prducer until next int
+      ssize_t byteread = read(p2c_pipe[0], &prod_num, sizeof(prod_num));
+      assert(byteread == sizeof(prod_num));
+      
+      printf("Consumer: %d\n", prod_num);
+      // and than sends ack byte back to the produscer
+      char ack = 'k';
+      ssize bytewrite_t = write(c2p_pipe[1], &ack, sizeof(ack));
+      assert(bytewrite == sizeof(ack));
       
     }
     close(p2c_pipe[0]);
@@ -45,7 +52,16 @@ int main(){
 
     for(int i=1; i <=5; i++){
       
-      print("Producer: %d\n:, i);
+      printf("Producer: %d\n", i);
+
+        // sends num thru pipe to consumer
+        ssize_t bytewrite = write(p2c_pipe[1], &i, sizeof(i));
+        assert(bytewrite == sizeof(i));
+
+        char ack;
+        ssize_t byteread = read(c2p_pipe[0], &ack, sizeof(ack));
+        assert(byteread == sizeof(ack));
+      
       
     }
   
@@ -54,7 +70,8 @@ int main(){
 
 
       int status;
-      waitpid(pid, &status, 0;
+      pid_t exited_pid = waitpid(p1, &status, 0);
+      assert(exited_pid == p1);
       //wait for consumer to exit and prevent zombie process
   }
 
