@@ -35,7 +35,7 @@ int main(){
       printf("Consumer: %d\n", prod_num);
       // and than sends ack byte back to the produscer
       char ack = 'k';
-      ssize bytewrite_t = write(c2p_pipe[1], &ack, sizeof(ack));
+      ssize_t bytewrite = write(c2p_pipe[1], &ack, sizeof(ack));
       assert(bytewrite == sizeof(ack));
       
     }
