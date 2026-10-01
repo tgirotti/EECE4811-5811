@@ -34,7 +34,7 @@ void TicketLock::unlock()
 }
 
 // Run in a thread to benchmark the ticket lock
-void ticket_lock_test(TicketLock &tl, const int iterations, long double &local_time)
+void ticket_lock_test(TicketLock &tl, const int iterations, auto &local_time)
 {
     std::vector<std::chrono::duration<double>> local_times;
     for (int i = 0; i < iterations; i++)
@@ -59,7 +59,7 @@ void ticket_lock_test(TicketLock &tl, const int iterations, long double &local_t
 
 int main()
 {
-    std::unordered_map<std::thread::id, const int> thread_times;
+    std::unordered_map<std::thread::id, long double> thread_times;
     const int THREADS = 32; // Number of threads to contend for the lock
     const int ITERS = 100;  // Number of lock/unlock iterations in each thread
     // std::vector<std::chrono::duration<double>> times(THREADS * ITERS); // Vector for holding all acquisition times
@@ -69,10 +69,9 @@ int main()
     TicketLock tl;
     for (int i = 0; i < THREADS; i++)
     {
-        long double local_time;
-        thread_times.emplace(i, local_time);
+        auto [it, inserted] = thread_times.emplace(i, 0.0L); // Tuple
         // Create thread and push back in vector
-        threads.emplace_back(ticket_lock_test, std::ref(tl), ITERS, std::ref(local_time));
+        threads.emplace_back(ticket_lock_test, std::ref(tl), ITERS, std::ref(it->second));
         // threads.push_back(t); // Non-copyable, have to use move semantics instead
     }
 
@@ -88,10 +87,8 @@ int main()
         total_time += time.second;
     }
 
-    std::cout << "Average time: " << total_time / thread_times.size() << std::endl;
+    std::cout << "Total time: " << total_time << std::endl;
 
     std::cout << "Hello, world! All finished." << std::endl;
     return 0;
 }
-
-// TODO: Add GPT attribution

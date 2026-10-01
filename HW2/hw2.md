@@ -21,3 +21,24 @@ Question 3:
   causing it to sleep even though the lock was rleased, t1 might sleep forever
 
   -adding setpark before m-> guard to 0 will fix it because t1 will say it is about to park. if t2 calls unparkt1 before t1 parks, the os will remmebr the wakeup. WHen t1 calls park it will return instead of going to sleep prventing the wakeup from being lost.
+
+
+Question 4:
+- The code does not work fully. While the ticket lock works correctly, the machinery around it to collect the data suffered from race conditions corrupting the stack and heap, which were not resolved in time for submission.
+- AI Usage Disclaimer: ChatGPT was used to parse unreadable template errors resulting from debugging the code. In addition, ChatGPT was used to find desired functionality in C++ that we were unaware of, such as the methods from std::chrono and std::thread, in addition to the hashmap functions.
+
+Prompts that materially altered the code. Note that I did not include the template errors, as while my own changes altered the code as a result of GPT's analysis, I did not use their example code:
+- "How can I extend the lifetime of the object to the parent of the loop? 
+```for (int i = 0; i < THREADS; i++)
+    {
+        long double local_time;
+        // Create thread and push back in vector
+        threads.emplace_back(ticket_lock_test, std::ref(tl), ITERS, std::ref(local_time));
+        thread_times.emplace(i, local_time);
+        // threads.push_back(t); // Non-copyable, have to use move semantics instead
+    }```"
+- "std::hashmap where thread ID is key and a chrono vec ref is value?"
+- "If I take in a &times, and want to overwrite it with my own vector, how can I do that?"
+- "Corrupted top size would be an indicator of what?"
+- "Fix this:         thread_times.push_back(std::pair<i, std::vector<std::chrono::duration<double>>()>());"
+- "std::atomic_vector so I can have threads push back to a times vector?"
