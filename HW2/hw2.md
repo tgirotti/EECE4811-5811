@@ -9,7 +9,7 @@ Question 2:
   -It should release the lock if the application uses lock correctly because flag should be 1 and - 1 will make it -, but the modified 
   lock is not fully correct.
 
-  -if t1 incorrecly calls unlock while flag is 0, flag will becaome -1 and t2 can then call lock. since it only waits will flag is 1, -1 
+  -if t1 incorrecly calls unlock while flag is 0, flag will becaome 0 and t2 can then call lock. since it only waits will flag is 1, -1 
   will be acted as it is free to use.
   -this will make an invalid lock state and will cause incorrect lock behavior, so it is not correct for all possible executions.
 
