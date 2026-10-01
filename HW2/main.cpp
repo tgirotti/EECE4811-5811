@@ -3,6 +3,8 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <unordered_map>
+#include <functional>
 #include <mutex>
 
 // TicketLock from Figure 28.7
@@ -32,7 +34,7 @@ void TicketLock::unlock()
 }
 
 // Run in a thread to benchmark the ticket lock
-void ticket_lock_test(TicketLock &tl, std::vector<std::chrono::duration<double>> &times, const int iterations, std::mutex times_mutex)
+void ticket_lock_test(TicketLock &tl, const int iterations, long double &local_time)
 {
     std::vector<std::chrono::duration<double>> local_times;
     for (int i = 0; i < iterations; i++)
@@ -46,23 +48,31 @@ void ticket_lock_test(TicketLock &tl, std::vector<std::chrono::duration<double>>
         const std::chrono::duration<double> elapsed_seconds{acq_time - start};
         local_times.push_back(elapsed_seconds);
     }
-    times = std::move(local_times);
+    long double total_time = 0;
+    for (auto &time : local_times)
+    {
+        total_time += time.count();
+    }
+    local_time = total_time;
+    std::cout << "Thread local " << local_time << std::endl;
 }
 
 int main()
 {
-    std::mutex times_mutex;
-    const int THREADS = 32;                                            // Number of threads to contend for the lock
-    const int ITERS = 100;                                             // Number of lock/unlock iterations in each thread
-    std::vector<std::chrono::duration<double>> times(THREADS * ITERS); // Vector for holding all acquisition times
-    std::vector<std::pair<int, std::vector<std::chrono::duration<double>>>> thread_times;
+    std::unordered_map<std::thread::id, const int> thread_times;
+    const int THREADS = 32; // Number of threads to contend for the lock
+    const int ITERS = 100;  // Number of lock/unlock iterations in each thread
+    // std::vector<std::chrono::duration<double>> times(THREADS * ITERS); // Vector for holding all acquisition times
+    // std::vector<std::pair<int, std::vector<std::chrono::duration<double>>>> thread_times;
+    // std::hash
     std::vector<std::thread> threads(THREADS); // Vector for holding threads
     TicketLock tl;
     for (int i = 0; i < THREADS; i++)
     {
-        thread_times.emplace_back(i, std::vector<std::chrono::duration<double>>{});
+        long double local_time;
+        thread_times.emplace(i, local_time);
         // Create thread and push back in vector
-        threads.emplace_back(ticket_lock_test, std::ref(tl), std::ref(thread_times.back().second), ITERS, times_mutex);
+        threads.emplace_back(ticket_lock_test, std::ref(tl), ITERS, std::ref(local_time));
         // threads.push_back(t); // Non-copyable, have to use move semantics instead
     }
 
@@ -73,12 +83,9 @@ int main()
     }
 
     long double total_time = 0;
-    for (auto &time_vec_pair : thread_times)
+    for (auto &time : thread_times)
     {
-        for (auto &time : time_vec_pair.second)
-        {
-            total_time += time.count();
-        }
+        total_time += time.second;
     }
 
     std::cout << "Average time: " << total_time / thread_times.size() << std::endl;
