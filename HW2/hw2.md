@@ -16,3 +16,8 @@ Question 2:
 
 Question 3:
   -w/o setpark a wakeup/waiting race can happen. If t1 tries to get the lock, it sees that it is already held, and adds itself to the wiating queue and sets m-> guard to zero. Before t1 calsl park the scheduler switches to t2.
+
+  -t2 rleases the lock and calls unparkt1, since t1 has not called park yet the wakeup can be missed. t1 will run again and call park 
+  causing it to sleep even though the lock was rleased, t1 might sleep forever
+
+  -adding setpark before m-> guard to 0 will fix it because t1 will say it is about to park. if t2 calls unparkt1 before t1 parks, the os will remmebr the wakeup. WHen t1 calls park it will return instead of going to sleep prventing the wakeup from being lost.
