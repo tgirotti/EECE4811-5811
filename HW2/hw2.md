@@ -11,5 +11,8 @@ Question 2:
 
   -if t1 incorrecly calls unlock while flag is 0, flag will becaome -1 and t2 can then call lock. since it only waits will flag is 1, -1 
   will be acted as it is free to use.
+  -this will make an invalid lock state and will cause incorrect lock behavior, so it is not correct for all possible executions.
 
-  - this will make an invalid lock state and will cause incorrect lock behavior, so it is not correct for all possible executions.
+
+Question 3:
+  -w/o setpark a wakeup/waiting race can happen. If t1 tries to get the lock, it sees that it is already held, and adds itself to the wiating queue and sets m-> guard to zero. Before t1 calsl park the scheduler switches to t2.
