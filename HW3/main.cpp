@@ -9,17 +9,10 @@
 #include <functional>
 #include <mutex>
 
-class Node
-{
-    friend SingleLockLL;
-
-private:
-    std::unique_ptr<Node> next;
-    int key{0};
-};
-
 class SingleLockLL
 {
+    class Node;
+
 private:
     std::mutex mutex; // Will auto initialize
     std::unique_ptr<Node> head;
@@ -33,6 +26,15 @@ public:
     int insert(const int key);
     int lookup(const int key);
     int remove(const int key);
+};
+
+class SingleLockLL::Node
+{
+    friend class SingleLockLL;
+
+private:
+    std::unique_ptr<Node> next;
+    int key{0};
 };
 
 int SingleLockLL::insert(const int key)
@@ -63,45 +65,57 @@ int SingleLockLL::lookup(const int key)
     return rv;
 }
 
-// Run in a thread to benchmark the ticket lock
-void ticket_lock_test(TicketLock &tl, const int iterations, auto &local_time)
+// Sequential lookup workload
+void test_singlelock_ll_lookup(SingleLockLL &list, double &elapsed_time, const int iterations)
 {
-    std::vector<std::chrono::duration<double>> local_times;
+    const auto start{std::chrono::steady_clock::now()};
+
     for (int i = 0; i < iterations; i++)
     {
-        // From example in cppref (https://en.cppreference.com/cpp/chrono)
-        const auto start{std::chrono::steady_clock::now()};
-        tl.lock();
-        const auto acq_time{std::chrono::steady_clock::now()};
-        // std::cout << "Thread " << tid << "Acquired the lock!" << std::endl;
-        tl.unlock();
-        const std::chrono::duration<double> elapsed_seconds{acq_time - start};
-        local_times.push_back(elapsed_seconds);
+        list.lookup(i);
     }
-    long double total_time = 0;
-    for (auto &time : local_times)
-    {
-        total_time += time.count();
-    }
-    local_time = total_time;
-    std::cout << "Thread local " << local_time << std::endl;
+
+    const auto end{std::chrono::steady_clock::now()};
+    const std::chrono::duration<double> elapsed_seconds{end - start};
+
+    elapsed_time = elapsed_seconds.count();
 }
 
+void test_singlelock_sequential_insert(SingleLockLL &list, double &elapsed_time, const int iterations)
+{
+    const auto start{std::chrono::steady_clock::now()};
+
+    for (int i = 0; i < iterations; i++)
+    {
+        list.insert(i);
+    }
+
+    const auto end{std::chrono::steady_clock::now()};
+    const std::chrono::duration<double> elapsed_seconds{end - start};
+
+    elapsed_time = elapsed_seconds.count();
+}
+
+// void singlelock_ll_test()
+// {
+
+// }
+
+// TODO: have primarily writers, then primarily readers, then equal splits of
+// each for workload types. Maybe also have random reads/writes in different places in the list,
+// or all reads, no writes, or all writes, no reads, etc.
 int main()
 {
-    std::unordered_map<std::thread::id, long double> thread_times;
-    const int THREADS = 32; // Number of threads to contend for the lock
-    const int ITERS = 100;  // Number of lock/unlock iterations in each thread
-    // std::vector<std::chrono::duration<double>> times(THREADS * ITERS); // Vector for holding all acquisition times
-    // std::vector<std::pair<int, std::vector<std::chrono::duration<double>>>> thread_times;
-    // std::hash
+    std::unordered_map<std::thread::id, double> thread_times;
+    const int THREADS = 2; // Number of threads to contend for the lock
+    const int ITERS = 100; // Number of lock/unlock iterations in each thread
+    SingleLockLL list;
     std::vector<std::thread> threads(THREADS); // Vector for holding threads
-    TicketLock tl;
     for (int i = 0; i < THREADS; i++)
     {
-        auto [it, inserted] = thread_times.emplace(i, 0.0L); // Tuple
+        auto [it, inserted] = thread_times.emplace(i, 0.0); // Tuple
         // Create thread and push back in vector
-        threads.emplace_back(ticket_lock_test, std::ref(tl), ITERS, std::ref(it->second));
+        threads.emplace_back(test_singlelock_ll_lookup, std::ref(list), std::ref(it->second), ITERS);
         // threads.push_back(t); // Non-copyable, have to use move semantics instead
     }
 
