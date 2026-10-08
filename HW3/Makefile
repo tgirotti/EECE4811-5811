@@ -3,7 +3,8 @@ CXX := g++
 CXXFLAGS := -O0 -Wall -Wextra -Wpedantic -Werror \
             -Wconversion -Wshadow -Wformat=2 -Wundef \
             -Wnull-dereference -Wdouble-promotion \
-            -Wimplicit-fallthrough
+            -Wimplicit-fallthrough \
+			-pthread -ggdb -gdwarf
 
 TARGET := main
 SRC := main.cpp
