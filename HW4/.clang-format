@@ -8,3 +8,5 @@ IndentWidth: 4
 TabWidth: 4
 KeepEmptyLines:
   AtEndOfFile: true
+SortIncludes: true
+IncludeBlocks: Regroup
