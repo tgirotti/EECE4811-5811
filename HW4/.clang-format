@@ -1,0 +1,10 @@
+BasedOnStyle: Google
+InsertNewlineAtEOF: true
+IndentAccessModifiers: false
+AccessModifierOffset: -3
+ReflowComments: false
+ColumnLimit: 100
+IndentWidth: 4
+TabWidth: 4
+KeepEmptyLines:
+  AtEndOfFile: true
