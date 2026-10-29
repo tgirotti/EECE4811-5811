@@ -13,11 +13,12 @@
 
 unsigned int Allocator::malloc(const int size, bool& success) {
     success = false;
+    // TODO: Implement splitting the freelist when required
+
     // Go through the free list until reaching a node that satisfies the requirements of m_policy
     // First fit: Find the first block that's free and big enough, give the allocation to that
     // Best fit: Collect candidates, allocate in the closest-fitting candidate
     // Worst fit: Put our allocation in the largest chunk of the list that's free and big enough
-
     switch (this->m_policy) {
         case first_fit:
             auto it_node =
@@ -25,8 +26,12 @@ unsigned int Allocator::malloc(const int size, bool& success) {
                              [&](const NodeInfo& info) { return info.get_size() >= size; });
             if (it_node->get_size() >= size) {
                 success = true;
+                const unsigned int addr = it_node->get_address();
                 this->m_freelist.erase(it_node);
-                return it_node->get_address();
+                this->m_allocations[addr] = 0;
+                // Coalesce
+                // TODO: Coalesce adjacent nodes in freelist (address sorted)
+                return addr;
             }
 
             break;
@@ -56,6 +61,7 @@ unsigned int Allocator::malloc(const int size, bool& success) {
                 // We found the closest fit
                 success = true;
                 this->m_freelist.erase(it_node_to_erase);  // TODO: Get rid of this erase call
+                this->m_allocations[closest_addr] = size;
                 return closest_addr;
             }
 
@@ -68,10 +74,18 @@ unsigned int Allocator::malloc(const int size, bool& success) {
 
             if (it_node->get_size() >= size) {
                 success = true;
+                const unsigned int addr = it_node->get_address();
                 this->m_freelist.erase(it_node);
-                return it_node->get_address();
+                this->m_allocations[addr] = size;
+                return addr;
             }
-
             break;
     }
+}
+
+bool Allocator::free(const unsigned int addr) {
+    // Add back the memory to the free list
+    this->m_allocations[addr] = 0;
+
+    // Coalesce until cannot coalesce anymore (dynamic programming? or can do it in one shot? probably one shot...)
 }
