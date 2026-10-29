@@ -2,7 +2,7 @@
 CXX := clang++-22
 TIDY := clang-tidy-22
 
-CXXFLAGS:= -O2 --std=c++20 -Wall -Wformat -Wformat=2 -Wconversion -Wimplicit-fallthrough \
+CXXFLAGS:= -O2 --std=c++20 -g -Wall -Wformat -Wformat=2 -Wconversion -Wimplicit-fallthrough \
 -Werror=format-security \
 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 \
 -D_GLIBCXX_ASSERTIONS \
@@ -14,10 +14,22 @@ CXXFLAGS:= -O2 --std=c++20 -Wall -Wformat -Wformat=2 -Wconversion -Wimplicit-fal
 -Wl,--as-needed -Wl,--no-copy-dt-needed-entries
 
 TARGET := main
-SRC := main.cpp
+SRC := main.cpp allocator.cpp
 
-$(TARGET): $(SRC)
+$(TARGET): $(SRC) allocator.hpp
 	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET)
+
+SRC := main.cpp allocator.cpp
+HEADERS := allocator.hpp
+
+DEBUG_TARGET := main-debug
+DEBUGFLAGS := $(filter-out -O2,$(CXXFLAGS)) \
+              -O0 -g3 \
+              -D_GLIBCXX_DEBUG \
+              -fno-omit-frame-pointer
+
+$(DEBUG_TARGET): $(SRC) $(HEADERS)
+	$(CXX) $(DEBUGFLAGS) $(SRC) -o $(DEBUG_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -29,6 +41,6 @@ tidy:
 		-- $(filter-out -Wl%,$(CXXFLAGS))
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(DEBUG_TARGET)
 
 .PHONY: run clean tidy

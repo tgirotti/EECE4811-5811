@@ -10,6 +10,8 @@ class Allocator {
 
  private:
     class NodeInfo {
+        friend class Allocator;
+
      public:
         NodeInfo(const unsigned int address, const unsigned int size)
             : m_address(address), m_size(size) {}
@@ -28,7 +30,7 @@ class Allocator {
     std::set<NodeInfo, decltype(cmp)> m_freelist;
     unsigned int m_size_in_bytes{0};
     enum policy m_policy;
-    std::set<unsigned int, unsigned int> m_allocations; // [addr] = {size}
+    std::unordered_map<unsigned int, unsigned int> m_allocations; // [addr] = {size}
 
 
  public:
@@ -40,7 +42,8 @@ class Allocator {
     }
 
     // Returns the "address" of the allocated memory region
-    unsigned int malloc(const int size, bool& success);
+    unsigned int malloc(const unsigned int size, bool& success);
+    void print();
 
     // Free memory previously allocated at `addr`. Returns a boolean indicating success
     bool free(const unsigned int addr);

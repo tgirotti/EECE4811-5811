@@ -3,24 +3,16 @@
 // Techniques described in OSTEP
 
 #include <iostream>
-#include <atomic>
 #include <chrono>
-#include <thread>
-#include <vector>
 #include <unordered_map>
-#include <functional>
-#include <mutex>
-#include <utility>  // std::move
-#include <memory>   // smart ptrs
 #include <list>
 #include <fstream>
 #include <stdexcept>
-#include <iostream>
 #include "allocator.hpp"
 
 class TestCase {
  public:
-    TestCase(const std::string filename) : m_filename(filename) {
+    TestCase(const std::string& filename) : m_filename(filename) {
         std::ifstream file{filename};
         std::unordered_map<int, bool> ids{};  // Map of IDs we've seen before
         if (!file.good() || file.bad() || file.eof()) {
@@ -70,6 +62,7 @@ class TestCase {
             }
 
             const operation_type optype = operation == 'M' ? malloc : free;
+            std::cout << "TestCase Constructor: " << id << " " << optype << " " << size << '\n';
             Event event = {.id = id, .event = optype, .size = size};
             m_event_list.emplace_back(event);
             //line++;
@@ -101,16 +94,40 @@ class TestCase {
     };
     const std::string m_filename;   // Filename of the test case
     std::list<Event> m_event_list;  // List of malloc() and free() events
+    std::unordered_map<unsigned int, unsigned int> id_to_addr;
     unsigned int m_size{};          // Amount of memory to work with
-    Allocator::policy m_policy;     //
+    Allocator::policy m_policy;     // Policy to use for test case allocator
 };
 
-void TestCase::run() { std::cout << "Running test case: " << this->m_filename << '\n'; 
+void TestCase::run() {
+    std::cout << "Running test case: " << this->m_filename << '\n';
+    Allocator allocator{m_size, m_policy};
+    allocator.print();
 
+    for (const auto& event : m_event_list) {
+        switch (event.event) {
+            case malloc: {
+                bool success = false;
+                id_to_addr[event.id] = allocator.malloc(event.size, success);
+                if (!success) {
+                    std::cerr << "Error: couldn't allocate " << event.id << " in test "
+                              << m_filename << '\n';
+                throw std::runtime_error("malloc error");
+                }
+                break;
+            }
+            case free: {
+                const unsigned int addr = id_to_addr.at(event.id);
+                allocator.free(addr);
+                break;
+            }
+        }
+    }
 }
 
 int main() {
     TestCase basic{"testcases/basic.txt"};
     basic.print();
+    basic.run();
     return 0;
 }
