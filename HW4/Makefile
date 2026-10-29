@@ -13,20 +13,14 @@ CXXFLAGS:= -O2 --std=c++20 -g -Wall -Wformat -Wformat=2 -Wconversion -Wimplicit-
 -Wl,-z,relro -Wl,-z,now \
 -Wl,--as-needed -Wl,--no-copy-dt-needed-entries
 
-TARGET := main
-SRC := main.cpp allocator.cpp
-
-$(TARGET): $(SRC) allocator.hpp
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET)
-
 SRC := main.cpp allocator.cpp
 HEADERS := allocator.hpp
 
+TARGET := main
 DEBUG_TARGET := main-debug
-DEBUGFLAGS := $(filter-out -O2,$(CXXFLAGS)) \
-              -O0 -g3 \
-              -D_GLIBCXX_DEBUG \
-              -fno-omit-frame-pointer
+
+$(TARGET): $(SRC) $(HEADERS)
+	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET)
 
 $(DEBUG_TARGET): $(SRC) $(HEADERS)
 	$(CXX) $(DEBUGFLAGS) $(SRC) -o $(DEBUG_TARGET)

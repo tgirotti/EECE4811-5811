@@ -63,7 +63,7 @@ unsigned int Allocator::malloc(const unsigned int size, bool& success) {
             for (auto it = m_freelist.begin(); it != m_freelist.end(); it++) {
                 const unsigned int node_size = it->get_size();
                 //const unsigned int addr = it->get_address();
-                if (node_size < closest_size && node_size >= size) {
+                if (node_size <= closest_size && node_size >= size) { // TODO: This is slightly wrong <= closest_size because will update if closest_size == size future nodes
                     allocation_valid = true;
                     closest_size = node_size;
                     closest_addr = it->get_address();
@@ -71,7 +71,7 @@ unsigned int Allocator::malloc(const unsigned int size, bool& success) {
                 }
             }
 
-            if (it_node == m_freelist.end()) return 0;  // No closest node found.
+            if (it_node == m_freelist.end() || !allocation_valid) return 0;  // No closest node found.
             if (allocation_valid) {
                 m_allocations[closest_addr] = size;
                 if (it_node->m_size == size) {
@@ -98,7 +98,7 @@ unsigned int Allocator::malloc(const unsigned int size, bool& success) {
         case worst_fit: {
             auto it_node = std::max_element(
                 m_freelist.begin(), m_freelist.end(),
-                [&](const NodeInfo& a, const NodeInfo& b) { return a.get_size() > b.get_size(); });
+                [&](const NodeInfo& a, const NodeInfo& b) { return a.get_size() < b.get_size(); });
 
             if (it_node == m_freelist.end()) return 0;  // No node found
             unsigned int addr = it_node->get_address();
@@ -153,8 +153,8 @@ bool Allocator::free(const unsigned int addr) {
 }
 
 void Allocator::print() {
-    std::cout << "Freelist: ";
+    std::cout << "== Freelist ==\n";
     for (const auto& elem : m_freelist) {
-        std::cout << elem.get_address() << ": " << elem.get_size() << '\n';
+        std::cout << "(" << elem.get_address() << ", " << elem.get_size() << ")\n";
     }
 }

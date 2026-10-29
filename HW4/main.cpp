@@ -8,6 +8,7 @@
 #include <list>
 #include <fstream>
 #include <stdexcept>
+#include <chrono>
 #include "allocator.hpp"
 
 class TestCase {
@@ -123,11 +124,19 @@ void TestCase::run() {
             }
         }
     }
+    std::cout << "After ";
+    allocator.print();
 }
 
-int main() {
-    TestCase basic{"testcases/basic.txt"};
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <filename>\n";
+        return 1;
+    }
+
+    TestCase basic{argv[1]};
     basic.print();
     basic.run();
+
     return 0;
 }
