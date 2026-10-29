@@ -85,3 +85,35 @@ At this time (3:30pm), it is not fully working and needs one bug fixed for polic
 ### AI Usage Disclosure
 ChatGPT was utilized to assist with debugging the C++ code and to review the behavior of the standard library and data structures. AI was also used to write the harness for the benchmark code, which was then modified to fit what we wanted. The following prompts materially influenced the code:
 
+```
+Generate a variety of workload files with large and small arena sizes. The workloads should be as follows:
+- multiple long-lived allocations with small allocations sprinkled in
+- All small allocations
+- Varied sizes of small to medium allocations
+- In-order mallocs and in-order frees
+- Interleaved mallocs and frees. That is, the resulting freelist will be difficult or impossible to coalesce properly
+- A workload that represents a database
+
+The varied parameters should conform to "the size of memory allocation requests, the frequency of allocation and deallocation, or the total number of requests.  ".
+```
+
+```
+Write the code that will extend the following functions with timing information. Each benchmark run should be run for 1000 iterations. Each file should be run with the three valid policies: Allocator::best_fit, Allocator::worst_fit, and Allocator::first_fit. The time for malloc() to execute must be measured, and overall memory fragmentation should also be measured. You may create a separate function to go through m_freelist of the Allocator to measure memory fragmentation based on the formula at the following site: https://asawicki.info/news_1757_a_metric_for_memory_fragmentation
+
+[snip, code]
+```
+
+```
+Modify main() to enumerate the filenames in ./testcases and put them in a const std::vector. Then, write a loop that executes run() on all of them.
+
+[snip, main()]
+```
+
+```
+Generate three workload files that will test if my first, worst, and best fits are correct. I will examine the freelist on each run. Keep total allocation sizes in increments of 10. Keep total arena size 4096.
+```
+
+```
+In this loop, do I have any iterator invalidation issues? 
+[snip, loop]
+```

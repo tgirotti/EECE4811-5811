@@ -207,7 +207,7 @@ void TestCase::run(Allocator::policy policy, BenchmarkStats* stats, bool measure
                 break;
             }
         }
-
+        
         if (stats && measure_fragmentation) {
             const double f = allocator.get_fragmentation();
 
