@@ -75,7 +75,8 @@ We measure the time taken for the allocator's `malloc()` to run on each requeste
 
 Each workload varies in size, number of mallocs and frees, and frequency. This is revealing as some workloads, like long-lived database workloads that assign a memory region at start, perform differently compared to workloads with short-lived allocations. The workloads are found in the `testcases` folder. Note that AI was utilized to generate these according to our given specificaton -- we unfortunately did not have time to write them by hand or create a generator program.
 
-
+### Note
+At this time (3:30pm), it is not fully working and needs one bug fixed for policy parsing.
 
 
 ### Resources
