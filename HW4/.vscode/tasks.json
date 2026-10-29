@@ -5,7 +5,7 @@
             "label": "build-debug",
             "type": "shell",
             "command": "make",
-            "args": ["main-debug"],
+            "args": ["main-debug", "./testcases"],
             "options": {
                 "cwd": "${workspaceFolder}"
             },

@@ -29,9 +29,9 @@ class Allocator {
     };
     std::set<NodeInfo, decltype(cmp)> m_freelist;
     unsigned int m_size_in_bytes{0};
-    enum policy m_policy{Allocator::policy::unset};
-    std::unordered_map<unsigned int, unsigned int> m_allocations; // [addr] = {size}
-
+    enum policy m_policy { Allocator::policy::unset };
+    static const std::unordered_map<enum policy, std::string> enum_to_str;
+    std::unordered_map<unsigned int, unsigned int> m_allocations;  // [addr] = {size}
 
  public:
     // size_in_bytes: Total size of memory for the allocator to work with
@@ -44,7 +44,7 @@ class Allocator {
     // Returns the "address" of the allocated memory region
     unsigned int malloc(const unsigned int size, bool& success);
     void print();
-    double get_fragmentation() const; // Scan the freelist and calculate its fragmentation
+    double get_fragmentation() const;  // Scan the freelist and calculate its fragmentation
 
     // Free memory previously allocated at `addr`. Returns a boolean indicating success
     bool free(const unsigned int addr);

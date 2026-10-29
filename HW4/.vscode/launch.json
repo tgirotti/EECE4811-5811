@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/main-debug",
-            "args": [],
+            "args": ["./testcases"],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],
