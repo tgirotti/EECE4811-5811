@@ -8,12 +8,17 @@
 #include <list>
 #include <fstream>
 #include <stdexcept>
-#include <chrono>
+#include <filesystem>
+#include <iomanip>
+#include <algorithm>
 #include "allocator.hpp"
+
+namespace fs = std::filesystem;
 
 class TestCase {
  public:
-    TestCase(const std::string& filename) : m_filename(filename) {
+    TestCase(const std::string& filename, Allocator::policy policy = Allocator::policy::unset)
+        : m_filename(filename) {
         std::ifstream file{filename};
         std::unordered_map<int, bool> ids{};  // Map of IDs we've seen before
         if (!file.good() || file.bad() || file.eof()) {
@@ -29,23 +34,26 @@ class TestCase {
         unsigned int size{};  // Size of the data to malloc
         file >> m_size;
 
-        char policy{};
-        if (!(file >> policy)) {
-            throw std::runtime_error("error: bad policy");
-        }
-
-        switch (policy) {
-            case 'W':
-                this->m_policy = Allocator::worst_fit;
-                break;
-            case 'B':
-                this->m_policy = Allocator::best_fit;
-                break;
-            case 'F':
-                this->m_policy = Allocator::first_fit;
-                break;
-            default:
-                throw std::runtime_error("error: bad policy");
+        char file_policy{};
+        if (!(file >> file_policy)) {
+            std::cout << "Test Case: No policy, defaulting to passed policy of " << policy << '\n';
+            m_policy = policy;
+        } else {
+            std::cout << "Test Case: Using policy provided by file\n";
+            switch (file_policy) {
+                case 'W':
+                    this->m_policy = Allocator::worst_fit;
+                    break;
+                case 'B':
+                    this->m_policy = Allocator::best_fit;
+                    break;
+                case 'F':
+                    this->m_policy = Allocator::first_fit;
+                    break;
+                default:
+                    std::cout << "No policy: leaving unset\n";
+                    break;
+            }
         }
 
         //unsigned int line{1};
@@ -86,7 +94,8 @@ class TestCase {
         }
     }
 
-    void run();
+    void benchmark(const Allocator::policy);
+    void run(const Allocator::policy);
     enum operation_type { malloc, free };
     struct Event {
         const unsigned int id;  // id to associate with the event for later free() calls
@@ -96,11 +105,29 @@ class TestCase {
     const std::string m_filename;   // Filename of the test case
     std::list<Event> m_event_list;  // List of malloc() and free() events
     std::unordered_map<unsigned int, unsigned int> id_to_addr;
-    unsigned int m_size{};          // Amount of memory to work with
-    Allocator::policy m_policy;     // Policy to use for test case allocator
+    unsigned int m_size{};       // Amount of memory to work with
+    Allocator::policy m_policy;  // Policy to use for test case allocator
+
+    struct BenchmarkStats {
+        double malloc_ns{0};
+        double free_ns{0};
+        double fragmentation_sum{0};
+        double peak_fragmentation{0};
+
+        unsigned int malloc_calls{0};
+        unsigned int free_calls{0};
+        unsigned int failures{0};
+        unsigned int fragmentation_samples{0};
+    };
+
+    void benchmark(Allocator::policy policy);
+
+    void run(Allocator::policy policy = Allocator::policy::unset, BenchmarkStats* stats = nullptr,
+             bool measure_fragmentation = false);
 };
 
-void TestCase::run() {
+void TestCase::run(Allocator::policy policy = Allocator::policy::unset) {
+    m_policy = policy == Allocator::policy::unset ? Allocator::policy::best_fit : m_policy;
     std::cout << "Running test case: " << this->m_filename << '\n';
     Allocator allocator{m_size, m_policy};
     allocator.print();
@@ -113,7 +140,7 @@ void TestCase::run() {
                 if (!success) {
                     std::cerr << "Error: couldn't allocate " << event.id << " in test "
                               << m_filename << '\n';
-                throw std::runtime_error("malloc error");
+                    throw std::runtime_error("malloc error");
                 }
                 break;
             }
@@ -128,15 +155,36 @@ void TestCase::run() {
     allocator.print();
 }
 
+// Measure performance overhead of finding free block with malloc()
+// Measure memory fragmentation using formula in hw4.md
+void TestCase::benchmark(const Allocator::policy policy) {}
+
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename>\n";
+        std::cerr << "Usage: " << argv[0] << " <testcase_dir>\n";
         return 1;
     }
+    const std::vector<fs::path> filenames = [argv] {
+        std::vector<fs::path> files;
 
-    TestCase basic{argv[1]};
-    basic.print();
-    basic.run();
+        for (const auto& entry : fs::directory_iterator{argv[1]}) {
+            if (entry.is_regular_file()) files.push_back(entry.path());
+        }
+
+        std::sort(files.begin(), files.end());
+        return files;
+    }();
+
+    for (const auto& filename : filenames) {
+        TestCase test{filename.string()};
+
+        std::cout << "\nBenchmarking: " << filename << '\n';
+
+        for (const auto policy :
+             {Allocator::best_fit, Allocator::worst_fit, Allocator::first_fit}) {
+            test.benchmark(policy);
+        }
+    }
 
     return 0;
 }

@@ -121,6 +121,8 @@ unsigned int Allocator::malloc(const unsigned int size, bool& success) {
             success = true;
             return addr;
         }
+        default:
+            throw std::runtime_error("malloc() : bad or unset policy");
     }
     return 0;
 }
@@ -157,4 +159,25 @@ void Allocator::print() {
     for (const auto& elem : m_freelist) {
         std::cout << "(" << elem.get_address() << ", " << elem.get_size() << ")\n";
     }
+}
+
+// Using the formula at https://asawicki.info/news_1757_a_metric_for_memory_fragmentation
+// fragmentation = 1 - (sumOfFreeRegionSizeSquares / sumOfFreeRegionSizes)^2
+double Allocator::get_fragmentation() const {
+    long double total_free = 0;
+    long double sum_squares = 0;
+
+    for (const auto& node : m_freelist) {
+        const long double size = node.get_size();
+
+        total_free += size;
+        sum_squares += size * size;
+    }
+
+    // Convention: no free memory means zero fragmentation.
+    if (total_free == 0)
+        return 0.0;
+
+    return 1.0 - static_cast<double>(
+        sum_squares / (total_free * total_free));
 }
