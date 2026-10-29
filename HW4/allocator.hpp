@@ -29,7 +29,7 @@ class Allocator {
     };
     std::set<NodeInfo, decltype(cmp)> m_freelist;
     unsigned int m_size_in_bytes{0};
-    enum policy m_policy;
+    enum policy m_policy{Allocator::policy::unset};
     std::unordered_map<unsigned int, unsigned int> m_allocations; // [addr] = {size}
 
 

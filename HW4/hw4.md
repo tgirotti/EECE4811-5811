@@ -62,4 +62,5 @@ SJF and RR have the same respones time when the jobs are ordered from shortest t
 Metric for measuring memory fragmentation: https://asawicki.info/news_1757_a_metric_for_memory_fragmentation
 
 ### AI Usage Disclosure
-ChatGPT was utilized to assist with debugging the C++ code and to review the behavior of the standard library and data structures. AI was also used to write the harness for the benchmark code, which was then modified to fit what we wanted. The following prompts were used:
+ChatGPT was utilized to assist with debugging the C++ code and to review the behavior of the standard library and data structures. AI was also used to write the harness for the benchmark code, which was then modified to fit what we wanted. The following prompts materially influenced the code:
+

@@ -129,7 +129,7 @@ unsigned int Allocator::malloc(const unsigned int size, bool& success) {
 
 bool Allocator::free(const unsigned int addr) {
     // Add back the memory to the free list
-    std::cout << "Freeing addr " << addr << '\n';
+    //std::cout << "Freeing addr " << addr << '\n';
     const unsigned int size = m_allocations.at(addr);  // Get size of our allocation
     m_allocations.erase(addr);
     m_freelist.insert(NodeInfo(addr, size));  // Add back to freelist
@@ -154,6 +154,7 @@ bool Allocator::free(const unsigned int addr) {
     return true;
 }
 
+// pin
 void Allocator::print() {
     std::cout << "== Freelist ==\n";
     for (const auto& elem : m_freelist) {
