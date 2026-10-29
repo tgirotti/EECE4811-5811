@@ -34,26 +34,20 @@ class TestCase {
         unsigned int size{};  // Size of the data to malloc
         file >> m_size;
 
-        char file_policy{};
-        if (!(file >> file_policy)) {
-            std::cout << "Test Case: No policy, defaulting to passed policy of " << policy << '\n';
-            m_policy = policy;
-        } else {
-            std::cout << "Test Case: Using policy provided by file\n";
-            switch (file_policy) {
-                case 'W':
-                    this->m_policy = Allocator::worst_fit;
-                    break;
-                case 'B':
-                    this->m_policy = Allocator::best_fit;
-                    break;
-                case 'F':
-                    this->m_policy = Allocator::first_fit;
-                    break;
-                default:
-                    std::cout << "No policy: leaving unset\n";
-                    break;
-            }
+        std::cout << "Test Case: Using policy provided by file\n";
+        switch (policy) {
+            case 'W':
+                this->m_policy = Allocator::worst_fit;
+                break;
+            case 'B':
+                this->m_policy = Allocator::best_fit;
+                break;
+            case 'F':
+                this->m_policy = Allocator::first_fit;
+                break;
+            default:
+                std::cout << "No policy: leaving unset\n";
+                break;
         }
 
         //unsigned int line{1};
