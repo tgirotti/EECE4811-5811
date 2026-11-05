@@ -1,0 +1,120 @@
+#Hw 5
+
+
+## Part 1 — Latency Numbers
+
+### Assumptions and units
+
+The original values come from the “Numbers Everyone Should Know” slide on PDF page 24 of Jeff Dean’s 2009 talk. [1][dean]
+
+
+### Original and modern latencies
+
+| Operation | Original latency | Modern latency and source | Comparison |
+| --- | ---: | --- | --- |
+| 1. L1 cache reference | 0.5 ns | **1.25 ns estimate:** 5 cycles at an assumed 4 GHz, using the Intel Alder Lake P-core latency in Agner Fog’s Table 13.1. [2][fog] | No improvement seen, larger cahches and higher throughput do not always reduce lancey of one dependent load. |
+| 2. Branch mispredict | 5 ns | **Approximately 5 ns planning estimate:** 20 cycles at an assumed 4 GHz. Fog reports Alder Lake cases exceeding 20 cycles, so some mispredictions cost more. [2][fog] | The cost remains on the same general scale, better predicton can reduce how often mispredctions happen. |
+| 3. L2 cache reference | 7 ns | **3.75 ns estimate:** 15 cycles at an assumed 4 GHz, using Alder Lake’s L2 latency. [2][fog] | Around 2x faster |
+| 4. Mutex lock/unlock | 25 ns | **9 ns measured per uncontended pair:** a pthread-based benchmark on Apple M1/macOS reported by Anton Zhiyanov. [3][mutex] | Around 3x faster for this implenmnation and workload. |
+| 5. Main memory reference | 100 ns | **Approximately 111 ns measured:** CPU-local DRAM on an Intel Xeon Silver 4416+ with DDR5-4800, measured using Intel MLC in a 2024 research paper. [4][dram] | No sig improvement. Increased memory bandwidhty doesn not always have lower indivual latency. |
+| 6. Read 1 MB sequentially from memory | 250 μs | **Approximately 50 μs estimate:** assume effective read bandwidth of 20 GB/s. This is within the 17–23 GB/s single-core bandwidth range reported for Sapphire Rapids in a 2024 paper. [5][bandwidth] | Around 5x faster under the state assumptions |
+| 7. Round trip within the same datacenter | 500 μs | **23.4 μs measured:** TCP with 100-byte requests and responses in a single-switch, 25 Gb/s cluster; USENIX ATC 2021, Table 2. [6][homa] | Around 21x faster under the benchmark conditions. |
+| 8. Disk seek | 10 ms | **Approximately 8–10 ms HDD estimate**, using Toshiba’s 8.5 ms read seek specification as a reference. [7][toshiba] An SSD has no mechanical seek; the Micron 7450 instead specifies **0.080 ms** typical random-read latency. [8][micron] | HDD seekign is still on mil second scale, SSD remove mechinal latency but have read latency and is is a differnet opeation. |
+| 9. Read 1 MB sequentially from disk | 20 ms | **3.51 ms HDD transfer estimate** at the Seagate Exos X24’s 285 MB/s, or **0.147 ms NVMe transfer estimate** at the Micron 7450’s 6,800 MB/s. [9][seagate] [8][micron] | Around 6x faster and 136x faster when comparing tranfer times. Int access add time. |
+| 10. California → Netherlands → California | 150 ms | **145 ms measured median RTT:** Azure West US → West Europe, for the 30-day period ending July 30, 2026. Microsoft identifies these regions as California and the Netherlands. [10][azure-latency] [11][azure-regions] | Only 3% lower, signal prop and routing are still limitaions like disccued in net design. |
+
+### Calculations 
+
+For CPU est. latency in nano seconds equals the cylce count div by the freq in ghz which I choose 4ghz. 
+
+```text
+Time per cycle at 4 GHz = 1 / 4 = 0.25 ns
+
+L1:  5 cycles / 4 GHz = 1.25 ns
+L2: 15 cycles / 4 GHz = 3.75 ns
+Branch example: 20 cycles / 4 GHz = 5 ns
+```
+
+The source lists L1 latency as 5 cycles and L2 latency as 15 cycles. I assumed a CPU speed of 4 GHz to convert these into nanoseconds, so a different CPU speed would give different results. For sequential reads, I estimated the transfer time by dividing the data size by the bandwidth:
+
+```text
+Memory:
+1,000,000 bytes / 20,000,000,000 bytes/s
+= 0.000050 s
+= 50 μs
+
+HDD:
+1 MB / 285 MB/s
+= 0.00351 s
+= 3.51 ms
+
+NVMe SSD:
+1 MB / 6,800 MB/s
+= 0.000147 s
+= 0.147 ms
+```
+
+**Memory:** Assumed data read from DRAM at 20 GB/s. Reading data in cache could be faster. The 50 μs value is calculated not measured  [5][bandwidth]
+
+**Storage:** The seq read est assume already going trasnfer and doesnt have HDD int seek and rotate delay. The SSD badnwidth may not be reach by a single 1 MB request.  [8][micron]
+
+**HDD seeking:** The seek estimate comes from a 2019 Toshiba spec. Seeking moves the drive head and while rotational delay is the wait for the data to rotate into position. [7][toshiba]
+
+**Datacenter networking:** The 2021 measurement used small messages on a 25 Gb/s network through one switch under tuned conditions. Other datacenter setups may have higher latency. [6][homa]
+
+
+## Which improved the most
+The best improvement in these examples is the transfer time for big storage reads esp when moving from HHD to SSD. Short datacenter roundtrips also improved in this benchmark. Seq memory reads benefit from higher bandwidth. DRAM access that is induvial, branch mispredciton recovry, and hdd seeks are about the same. Internation comm remains around the same and still expensive. These comparisons show that increasing bandwidth help with large transfers but it does not get rid of the cost of waiting for dependent memory access or distance response.  
+
+
+
+
+## References
+
+1. Jeff Dean. *Designs, Lessons and Advice from Building Large Distributed Systems*. LADIS 2009. “Numbers Everyone Should Know,” PDF page 24. [Slides][dean].
+
+2. Agner Fog. *The Microarchitecture of Intel, AMD, and VIA CPUs*. Version updated May 23, 2026. Alder Lake cache latencies, Table 13.1, printed page 174; branch-misprediction discussion, page 175. [Manual][fog].
+
+3. Anton Zhiyanov. *Go-flavored concurrency in C*. “Performance” and “Benchmarking” sections. Original benchmark results and links to benchmark source; Apple M1/macOS, Clang 16. [Article][mutex].
+
+4. Daniel Habicht et al. *Fundamental OS Design Considerations for CXL-based Hybrid SSDs*. DIMES 2024. Evaluation setup on PDF page 5 reports approximately 111 ns for CPU-local DRAM. [Paper][dram].
+
+5. Alessandro Fogli et al. *OLAP on Modern Chiplet-Based Processors*. PVLDB 17(11), 2024. Table 1 reports 17–23 GB/s single-core bandwidth for Sapphire Rapids; used here as the basis for an estimate. [Paper][bandwidth].
+
+6. John Ousterhout. *A Linux Kernel Implementation of the Homa Transport Protocol*. USENIX ATC 2021. Tables 1 and 2, printed page 779 / PDF page 8, give the test configuration and TCP latency. [Paper][homa].
+
+7. Toshiba. *MG Series Enterprise Hard Drives*. January 2019 datasheet. Lists 8.5 ms average read seek time for specified models, separately from rotational latency. Used as an older reference for the HDD estimate. [Datasheet][toshiba].
+
+8. Micron. *Micron 7450 SSD Series Technical Product Specification*. Revision B, March 2024. Specifies up to 6,800 MB/s sequential read and 80 μs typical random-read latency, with workload and queue-depth conditions. [Specification][micron].
+
+9. Seagate. *Exos X24 Data Sheet*. DS2080-2307US. Specifies 285 MB/s sustained transfer rate at the outer diameter. [Datasheet][seagate].
+
+10. Microsoft. *Azure network round-trip latency statistics*. Dataset covering the 30-day period ending July 30, 2026. West US source row, West Europe destination column: 145 ms P50 RTT. [Latency statistics][azure-latency].
+
+11. Microsoft. *List of Azure regions*. Identifies West US as California and West Europe as the Netherlands. [Region list][azure-regions].
+
+12. MIT 6.1810, Fall 2026. *Lab: Copy-on-Write Fork for xv6*. Describes shared read-only mappings, COW faults, reference counting, and treatment of originally read-only pages. [Lab][cow].
+
+13. Linux man-pages project. *fork(2)*. Describes separate parent/child address spaces and Linux’s copy-on-write implementation. [Manual page][fork].
+
+Sources were consulted with ChatGPT assistance on November 4, 2026. The dates above identify source versions or measurement periods, not a claim that all tests were performed in 2026.
+
+## AI Assistance Disclosure
+
+ChatGPT assisted with finding sources, calculating estimates and comparisons.
+No real latencies coded, just sources that Chat helped me find and it helped me put my thoughts in an organedized matter. 
+
+
+[dean]: https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf
+[fog]: https://www.agner.org/optimize/microarchitecture.pdf
+[mutex]: https://antonz.org/concurrency-in-c/
+[dram]: https://os.itec.kit.edu/downloads/Fundamental_OS_Design_Considerations_for_CXL_based_Hybrid_SSDs.pdf
+[bandwidth]: https://lsds.doc.ic.ac.uk/sites/default/files/p2246-fogli.pdf
+[homa]: https://www.usenix.org/system/files/atc21-ousterhout.pdf
+[toshiba]: https://www.toshiba-storage.com/wp-content/uploads/2019/02/TOSHIBA_DS_MG_Series_2019-01.pdf
+[micron]: https://www.micron.com/content/dam/micron/global/public/documents/products/technical-marketing-brief/7450-nvme-ssd-tech-prod-spec.pdf
+[seagate]: https://www.seagate.com/content/dam/seagate/en/content-fragments/products/datasheets/exos-x24/exos-x24-DS2080-2307US-en_US.pdf
+[azure-latency]: https://learn.microsoft.com/en-us/azure/networking/azure-network-latency
+[azure-regions]: https://learn.microsoft.com/en-us/azure/reliability/regions-list
+[cow]: https://pdos.lcs.mit.edu/6.828/2026/labs/cow.html
+[fork]: https://man7.org/linux/man-pages/man2/fork.2.html
